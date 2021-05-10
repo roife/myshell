@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
 #include <sys/wait.h>
 #include <string.h>
 
@@ -36,17 +37,17 @@ bool execute_command(Command *command, int fd_in, int fd_out) {
         return false;
     } else if (pid == 0) {
         if (command->file_in) {
-            int in = open(command->file_in, O_RDONLY);
+            int in = open(command->file_in, O_RDONLY, 0666);
             dup2(in, STDIN_FILENO);
         } else if (fd_in > 0) {
             dup2(fd_in, STDIN_FILENO);
         }
 
         if (command->file_out) {
-            int out = open(command->file_out, O_RDWR | O_CREAT);
+            int out = open(command->file_out, O_RDWR | O_CREAT, 0666);
             dup2(out, STDOUT_FILENO);
         } else if (command->file_append) {
-            int append = open(command->file_append, O_WRONLY | O_CREAT | O_APPEND);
+            int append = open(command->file_append, O_WRONLY | O_CREAT | O_APPEND, 0666);
             dup2(append, STDOUT_FILENO);
         } else if (fd_out > 0) {
             dup2(fd_out, STDOUT_FILENO);
