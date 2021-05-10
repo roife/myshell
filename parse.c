@@ -30,9 +30,13 @@ bool tokenize(char *buf, Token *tokens) {
         if (!*buf) break;
 
         if (*buf == '|') add_token(tokens, TOKEN_PIPE, buf), ++buf;
-        else if (*buf == '>') add_token(tokens, *(buf + 1) == '>' ? TOKEN_ANGLE_RR : TOKEN_ANGLE_R, buf), ++buf;
-        else if (*buf == '<') add_token(tokens, TOKEN_ANGLE_L, buf), ++buf;
-        else if (*buf == '\'' || *buf == '\"') {
+        else if (*buf == '>' || *buf == '<') {
+            TokenType token_type = *buf == '<' ? TOKEN_ANGLE_L :
+                                   *buf == '>' && *(buf + 1) == '>' ? TOKEN_ANGLE_RR :
+                                   TOKEN_ANGLE_R;
+            ++buf;
+            add_token(tokens, token_type, NULL);
+        } else if (*buf == '\'' || *buf == '\"') {
             tokens->token_type = TOKEN_STR;
             tokens->str = buf;
 
@@ -47,13 +51,14 @@ bool tokenize(char *buf, Token *tokens) {
 
             char *start = buf;
             while (*buf && !isspace(*buf) &&
-                   *buf != '|' && *buf != '<' && *buf != '>') ++buf;
+                   *buf != '|' && *buf != '<' && *buf != '>')
+                ++buf;
             tokens->len = buf - start;
         }
 
         ++tokens;
     }
-    add_token(tokens, TOKEN_END, buf);
+    add_token(tokens, TOKEN_END, NULL);
 
     return true;
 }
@@ -90,11 +95,11 @@ bool parse(Token *tokens, Command *commands) {
             } else if (tokens->token_type == TOKEN_ANGLE_L ||
                        tokens->token_type == TOKEN_ANGLE_R ||
                        tokens->token_type == TOKEN_ANGLE_RR) {
-                char *dst = tokens->token_type == TOKEN_ANGLE_L ? commands->file_in :
-                            tokens->token_type == TOKEN_ANGLE_R ? commands->file_out :
-                            commands->file_append;
+                char **dstp = tokens->token_type == TOKEN_ANGLE_L ? &commands->file_in :
+                              tokens->token_type == TOKEN_ANGLE_R ? &commands->file_out :
+                              &commands->file_append;
                 ++tokens;
-                alloc_and_move_token_str(dst);
+                alloc_and_move_token_str(*dstp);
                 ++tokens;
             }
         }
