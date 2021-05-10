@@ -9,7 +9,6 @@
 char buf[BUF_SIZE];
 
 int main() {
-    char *path = NULL;
     while (true) {
         print_ps();
 

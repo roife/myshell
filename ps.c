@@ -29,4 +29,6 @@ bool print_ps() {
 
     printf("\033[0;32m%s\033[0m $ ", path);
     free(path);
+    return true;
 }
+

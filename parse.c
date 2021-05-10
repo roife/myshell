@@ -29,9 +29,9 @@ bool tokenize(char *buf, Token *tokens) {
         while (*buf && isspace(*buf)) ++buf;
         if (!*buf) break;
 
-        if (*buf == '|') add_token(tokens, TOKEN_PIPE, buf++);
-        else if (*buf == '>') add_token(tokens, *(buf + 1) == '>' ? TOKEN_ANGLE_RR : TOKEN_ANGLE_R, buf++);
-        else if (*buf == '<') add_token(tokens, TOKEN_ANGLE_L, buf++);
+        if (*buf == '|') add_token(tokens, TOKEN_PIPE, buf), ++buf;
+        else if (*buf == '>') add_token(tokens, *(buf + 1) == '>' ? TOKEN_ANGLE_RR : TOKEN_ANGLE_R, buf), ++buf;
+        else if (*buf == '<') add_token(tokens, TOKEN_ANGLE_L, buf), ++buf;
         else if (*buf == '\'' || *buf == '\"') {
             tokens->token_type = TOKEN_STR;
             tokens->str = buf;

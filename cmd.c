@@ -71,7 +71,7 @@ void execute_commands(Command *commands) {
 
     int fd[2], prev_out_fd = -1;
 
-    for (int i = 0; i < cnt_commands; ++i) {
+    for (size_t i = 0; i < cnt_commands; ++i) {
         pipe(fd);
         execute_command(commands + i, i == 0 ? -1 : prev_out_fd, i == cnt_commands - 1 ? -1 : fd[1]);
 
@@ -82,3 +82,4 @@ void execute_commands(Command *commands) {
 
     if (prev_out_fd > 0) close(prev_out_fd);
 }
+
