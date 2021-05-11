@@ -3,7 +3,7 @@ NAME = myshell.o
 CFLAGS = -Wall -Wextra -Wpedantic
 OBJS = cmd.o parse.o ps.o main.o
 
-%.o: %.c
+%.o: %.c %.h
 	$(CC) -c $(CFLAGS) $<
 
 $(NAME): $(OBJS)
