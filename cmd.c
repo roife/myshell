@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <sys/wait.h>
 #include <string.h>
+#include <errno.h>
+#include <stdio.h>
 
 #define COMMAND_EXIT "exit"
 
@@ -28,13 +30,14 @@ void free_commands(Command *commands) {
     while (commands->cmd) free_command(commands++);
 }
 
-bool execute_command(Command *command, int fd_in, int fd_out) {
+void execute_command(Command *command, int fd_in, int fd_out) {
     if (strcmp(command->cmd, COMMAND_EXIT) == 0) exit(0);
 
     pid_t pid = fork();
 
     if (pid < 0) {
-        return false;
+        printf("Error: Create child process failed!\n");
+        return;
     } else if (pid == 0) {
         if (command->file_in) {
             int in = open(command->file_in, O_RDONLY, 0666);
@@ -53,12 +56,26 @@ bool execute_command(Command *command, int fd_in, int fd_out) {
             dup2(fd_out, STDOUT_FILENO);
         }
         execvp(command->cmd, command->args);
-        exit(1);
+        fprintf(stderr, "%s: %s\n", command->cmd, strerror(errno));
+        fflush(stderr);
+        switch (errno) {
+            case ENOENT:
+                exit(127);
+            case EACCES:
+                exit(126);
+            default:
+                exit(1);
+        }
     } else {
         int status;
         waitpid(pid, &status, 0);
+        if (WIFSIGNALED(status)) {
+            printf("Error: process terminated by signal: %s\n", strsignal(WTERMSIG(status)));
+        } else if (WIFEXITED(status)) {
+            int ret = WEXITSTATUS(status);
+            if (ret) printf("Error: process exited with status %d\n", ret);
+        }
     }
-    return true;
 }
 
 size_t count_commands(Command *commands) {

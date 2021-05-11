@@ -17,10 +17,12 @@ int main() {
             if (buf[buf_len - 1] == '\n') buf[buf_len - 1] = '\0';
 
             Command *commands = malloc(CMD_SIZE * sizeof(Command));
-            parse_commands(buf, commands);
-            execute_commands(commands);
-            free_commands(commands);
-            free(commands);
+            bool r = parse_commands(buf, commands);
+            if (r) {
+                execute_commands(commands);
+                free_commands(commands);
+                free(commands);
+            }
         }
     }
 }

@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdio.h>
 #include "parse.h"
 #include "cmd.h"
 #include "def.h"
+#include "err.h"
 
 typedef enum {
     TOKEN_SYM, TOKEN_STR, TOKEN_PIPE,
@@ -43,6 +45,7 @@ bool tokenize(char *buf, Token *tokens) {
             char *start = buf;
             ++buf; // ' / "
             while (*buf && *buf != *start) buf += (*(buf + 1) && *buf == '\\') ? 2 : 1;
+            if (!*buf) E_SYNTAX;
             ++buf; // ' / "
             tokens->len = buf - start;
         } else { // symbol
@@ -78,17 +81,22 @@ size_t count_args(Token *tokens) {
 
 bool parse(Token *tokens, Command *commands) {
     while (tokens->token_type != TOKEN_END) {
-        if (tokens->token_type != TOKEN_SYM) return false;
-
         command_init(commands);
         char **args = commands->args = malloc(sizeof(char *) * count_args(tokens));
-        alloc_and_move_token_str(commands->cmd);
-        alloc_and_move_token_str(*args);
-        ++args;
-        ++tokens;
+        bool has_cmd = false;
 
         while (tokens->token_type != TOKEN_END && tokens->token_type != TOKEN_PIPE) {
             if (tokens->token_type == TOKEN_SYM || tokens->token_type == TOKEN_STR) {
+                if (!has_cmd) {
+                    if (tokens->token_type == TOKEN_SYM) {
+                        has_cmd = true;
+                        alloc_and_move_token_str(commands->cmd);
+                        alloc_and_move_token_str(*args);
+                        ++args;
+                        ++tokens;
+                        continue;
+                    } else E_SYNTAX;
+                }
                 alloc_and_move_token_str(*args);
                 ++tokens;
                 args++;
@@ -99,6 +107,8 @@ bool parse(Token *tokens, Command *commands) {
                               tokens->token_type == TOKEN_ANGLE_R ? &commands->file_out :
                               &commands->file_append;
                 ++tokens;
+
+                if (tokens->token_type != TOKEN_SYM) E_SYNTAX;
                 alloc_and_move_token_str(*dstp);
                 ++tokens;
             }
@@ -107,7 +117,10 @@ bool parse(Token *tokens, Command *commands) {
         *args = malloc(sizeof(char));
         *args = 0;
         ++commands;
-        if (tokens->token_type == TOKEN_PIPE) ++tokens;
+        if (tokens->token_type == TOKEN_PIPE) {
+            ++tokens;
+            if (tokens->token_type == TOKEN_END) E_SYNTAX;
+        }
     }
     commands->cmd = NULL;
     return true;
