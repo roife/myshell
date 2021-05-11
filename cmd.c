@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #define COMMAND_EXIT "exit"
+#define COMMAND_CD "cd"
 
 void command_init(Command *command) {
     command->file_in = command->file_append = command->file_out = NULL;
@@ -32,11 +33,17 @@ void free_commands(Command *commands) {
 
 void execute_command(Command *command, int fd_in, int fd_out) {
     if (strcmp(command->cmd, COMMAND_EXIT) == 0) exit(0);
+    else if (strcmp(command->cmd, COMMAND_CD) == 0) {
+        if (chdir(command->args[1]) != 0) {
+            fprintf(stderr, "Error: cannot cd :%s\n", command->args[1]);
+        }
+        return;
+    }
 
     pid_t pid = fork();
 
     if (pid < 0) {
-        printf("Error: Create child process failed!\n");
+        fprintf(stderr, "Error: Create child process failed!\n");
         return;
     } else if (pid == 0) {
         if (command->file_in) {
@@ -55,25 +62,23 @@ void execute_command(Command *command, int fd_in, int fd_out) {
         } else if (fd_out > 0) {
             dup2(fd_out, STDOUT_FILENO);
         }
+
         execvp(command->cmd, command->args);
+
         fprintf(stderr, "%s: %s\n", command->cmd, strerror(errno));
-        fflush(stderr);
         switch (errno) {
-            case ENOENT:
-                exit(127);
-            case EACCES:
-                exit(126);
-            default:
-                exit(1);
+            case ENOENT: exit(127);
+            case EACCES: exit(126);
+            default: exit(1);
         }
     } else {
         int status;
         waitpid(pid, &status, 0);
         if (WIFSIGNALED(status)) {
-            printf("Error: process terminated by signal: %s\n", strsignal(WTERMSIG(status)));
+            fprintf(stderr, "Error: process terminated by signal: %s\n", strsignal(WTERMSIG(status)));
         } else if (WIFEXITED(status)) {
             int ret = WEXITSTATUS(status);
-            if (ret) printf("Error: process exited with status %d\n", ret);
+            if (ret) fprintf(stderr, "Error: process exited with status %d\n", ret);
         }
     }
 }

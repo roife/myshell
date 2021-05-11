@@ -2,7 +2,7 @@
 #define MYSHELL_ERR_H
 
 #define E_SYNTAX do { \
-        printf("Error: Syntax error!\n"); \
+        fprintf(stderr, "Error: Syntax error!\n"); \
         return false; \
     } while (0)
 
