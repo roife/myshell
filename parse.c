@@ -40,14 +40,25 @@ bool tokenize(char *buf, Token *tokens) {
             add_token(tokens, token_type, NULL);
         } else if (*buf == '\'' || *buf == '\"') {
             tokens->token_type = TOKEN_STR;
-            tokens->str = buf;
+            tokens->str = buf + 1;
 
             char *start = buf;
             ++buf; // ' / "
-            while (*buf && *buf != *start) buf += (*(buf + 1) && *buf == '\\') ? 2 : 1;
+            while (*buf && *buf != *start) {
+                if (*buf == '\\') {
+                    if (*(buf + 1)) {
+                        int len = strlen(buf);
+                        memmove(buf, buf + 1, len);
+                        // buf[len] = '\0';
+                    } else E_SYNTAX;
+                }
+                ++buf;
+                // buf += (*(buf + 1) && *buf == '\\') ? 2 : 1;
+            }
             if (!*buf) E_SYNTAX;
+
+            tokens->len = buf - start - 1;
             ++buf; // ' / "
-            tokens->len = buf - start;
         } else { // symbol
             tokens->token_type = TOKEN_SYM;
             tokens->str = buf;
